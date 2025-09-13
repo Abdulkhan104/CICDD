@@ -24,17 +24,17 @@ jobs:
         with:
           terraform_version: 1.6.0
 
-      # Step 3: Terraform fmt (format check)
-      - name: Terraform Format
-        run: terraform fmt -check
+      # Step 3: Terraform init (must run before validate)
+      - name: Terraform Init
+        run: terraform init
 
       # Step 4: Terraform validate (syntax check)
       - name: Terraform Validate
         run: terraform validate
 
-      # Step 5: Terraform init
-      - name: Terraform Init
-        run: terraform init
+      # Step 5: Terraform fmt (format check)
+      - name: Terraform Format
+        run: terraform fmt -check
 
       # Step 6: Terraform plan
       - name: Terraform Plan

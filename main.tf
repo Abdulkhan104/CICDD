@@ -13,12 +13,10 @@ provider "aws" {
   region = "ap-northeast-3"
 }
 
-# Get default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get all subnets in default VPC
 data "aws_subnets" "default_vpc" {
   filter {
     name   = "vpc-id"
@@ -26,7 +24,6 @@ data "aws_subnets" "default_vpc" {
   }
 }
 
-# Security group for SSH & HTTP
 resource "aws_security_group" "web_sg" {
   name        = "web-sg"
   description = "Allow SSH and HTTP"
@@ -57,20 +54,17 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# EC2 instance
 resource "aws_instance" "web" {
   ami           = "ami-0fa00cdbbe31fbb37"
   instance_type = "t2.medium"
 
-  # Let AWS choose a subnet automatically (avoids AZ issues)
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
   tags = {
-    Name = "web-server"
+    Name = "gitAction"
   }
 }
 
-# Output public IP
 output "ec2_public_ip" {
   description = "Public IP of EC2 instance"
   value       = aws_instance.web.public_ip

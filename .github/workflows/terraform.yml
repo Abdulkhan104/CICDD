@@ -1,67 +1,38 @@
-terraform {
-  required_version = ">= 1.6.0"
+name: Terraform CI/CD
 
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-    }
-  }
-}
+on:
+  push:
+    branches:
+      - main
 
-provider "aws" {
-  region = "ap-northeast-3"
-}
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
 
-# Get default VPC
-data "aws_vpc" "default" {
-  default = true
-}
+    env:
+      AWS_ACCESS_KEY_ID: YOUR_AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY: YOUR_AWS_SECRET_ACCESS_KEY
+      AWS_DEFAULT_REGION: ap-northeast-3
 
-# Security group
-resource "aws_security_group" "web_sg" {
-  name        = "web-sg-unique-1234"   # unique name
-  description = "Allow SSH and HTTP"
-  vpc_id      = data.aws_vpc.default.id
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+      # Step 2: Set up Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.0
 
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+      # Step 3: Terraform Init
+      - name: Terraform Init
+        run: terraform init
 
-  egress {
-    description = "All outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
+      # Step 4: Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan
 
-# EC2 instance
-resource "aws_instance" "web" {
-  ami                    = "ami-0fa00cdbbe31fbb37"
-  instance_type          = "t2.medium"
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
-
-  tags = {
-    Name = "web-server"
-  }
-}
-
-# Output public IP
-output "ec2_public_ip" {
-  description = "Public IP of EC2 instance"
-  value       = aws_instance.web.public_ip
-}
+      # Step 5: Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply --auto-approve

@@ -13,12 +13,12 @@ provider "aws" {
   region = "ap-northeast-3"
 }
 
-# Get the default VPC
+# Get default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get subnets in the default VPC
+# Get all subnets in default VPC
 data "aws_subnets" "default_vpc" {
   filter {
     name   = "vpc-id"
@@ -26,7 +26,7 @@ data "aws_subnets" "default_vpc" {
   }
 }
 
-# Security group
+# Security group for SSH & HTTP
 resource "aws_security_group" "web_sg" {
   name        = "web-sg"
   description = "Allow SSH and HTTP"
@@ -61,11 +61,8 @@ resource "aws_security_group" "web_sg" {
 resource "aws_instance" "web" {
   ami           = "ami-0fa00cdbbe31fbb37"
   instance_type = "t2.medium"
-  
-  # Use first subnet in VPC
-  subnet_id = data.aws_subnets.default_vpc.ids[0]
 
-  # Attach security group
+  # Let AWS choose a subnet automatically (avoids AZ issues)
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
   tags = {

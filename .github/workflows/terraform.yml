@@ -24,14 +24,22 @@ jobs:
         with:
           terraform_version: 1.6.0
 
-      # Step 3: Terraform init
+      # Step 3: Terraform fmt (format check)
+      - name: Terraform Format
+        run: terraform fmt -check
+
+      # Step 4: Terraform validate (syntax check)
+      - name: Terraform Validate
+        run: terraform validate
+
+      # Step 5: Terraform init
       - name: Terraform Init
         run: terraform init
 
-      # Step 4: Terraform plan
+      # Step 6: Terraform plan
       - name: Terraform Plan
-        run: terraform plan
+        run: terraform plan -out=tfplan
 
-      # Step 5: Terraform apply
+      # Step 7: Terraform apply
       - name: Terraform Apply
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan

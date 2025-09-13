@@ -18,9 +18,12 @@ data "aws_vpc" "default" {
   default = true
 }
 
-# Get the default subnet in that VPC
-data "aws_subnet_ids" "default" {
-  vpc_id = data.aws_vpc.default.id
+# Get one subnet in the default VPC
+data "aws_subnets" "default_vpc" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
 }
 
 # Security group to allow SSH (22) and HTTP (80)
@@ -58,7 +61,7 @@ resource "aws_security_group" "ec2_sg" {
 resource "aws_instance" "web" {
   ami           = "ami-0fa00cdbbe31fbb37" 
   instance_type = "t2.medium"
-  subnet_id     = data.aws_subnet_ids.default.ids[0]
+  subnet_id     = data.aws_subnets.default_vpc.ids[0]   # pick the first subnet
   security_groups = [aws_security_group.ec2_sg.name]
 
   tags = {

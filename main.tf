@@ -25,7 +25,7 @@ data "aws_subnet_ids" "default" {
 
 # Security group to allow SSH (22) and HTTP (80)
 resource "aws_security_group" "ec2_sg" {
-  name        = "ec2-sg"
+  name        = "aws_security_group.ec2_sg.id"
   description = "Allow SSH and HTTP"
   vpc_id      = data.aws_vpc.default.id
 

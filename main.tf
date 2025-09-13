@@ -1,34 +1,6 @@
-terraform {
-  required_version = ">= 1.6.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = "ap-northeast-3"  
-}
-
-# Get the default VPC
-data "aws_vpc" "default" {
-  default = true
-}
-
-# Get one subnet in the default VPC
-data "aws_subnets" "default_vpc" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
-
-# Security group to allow SSH (22) and HTTP (80)
+# Security group
 resource "aws_security_group" "ec2_sg" {
-  name        = "aws_security_group.ec2_sg.id"
+  name        = "ec2-sg"             # simple name
   description = "Allow SSH and HTTP"
   vpc_id      = data.aws_vpc.default.id
 
@@ -61,8 +33,9 @@ resource "aws_security_group" "ec2_sg" {
 resource "aws_instance" "web" {
   ami           = "ami-0fa00cdbbe31fbb37" 
   instance_type = "t2.medium"
-  subnet_id     = data.aws_subnets.default_vpc.ids[0]   # pick the first subnet
-  security_groups = [aws_security_group.ec2_sg.name]
+  subnet_id     = data.aws_subnets.default_vpc.ids[0]
+
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]  # ✅ use ID here
 
   tags = {
     Name = "junnkins"

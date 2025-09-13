@@ -13,12 +13,12 @@ provider "aws" {
   region = "ap-northeast-3"
 }
 
-# Get default VPC
+# Get the default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get subnets in default VPC
+# Get subnets in the default VPC
 data "aws_subnets" "default_vpc" {
   filter {
     name   = "vpc-id"
@@ -61,8 +61,11 @@ resource "aws_security_group" "web_sg" {
 resource "aws_instance" "web" {
   ami           = "ami-0fa00cdbbe31fbb37"
   instance_type = "t2.medium"
-  subnet_id     = data.aws_subnets.default_vpc.ids[0]
+  
+  # Use first subnet in VPC
+  subnet_id = data.aws_subnets.default_vpc.ids[0]
 
+  # Attach security group
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
   tags = {

@@ -1,45 +1,76 @@
-name: Terraform CI/CD
+terraform {
+  required_version = ">= 1.6.0"
 
-on:
-  push:
-    branches:
-      - main
-      
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ap-northeast-3  
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
 
-    steps:
-      # Step 1: Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+provider "aws" {
+  region = "ap-northeast-3"
+}
 
-      # Step 2: Set up Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.6.0
+# Get default VPC
+data "aws_vpc" "default" {
+  default = true
+}
 
-      # Step 3: Terraform init (must run before validate)
-      - name: Terraform Init
-        run: terraform init
+# Get subnets in default VPC
+data "aws_subnets" "default_vpc" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
 
-      # Step 4: Terraform validate (syntax check)
-      - name: Terraform Validate
-        run: terraform validate
+# Security group
+resource "aws_security_group" "web_sg" {
+  name        = "web-sg-unique"  # unique name
+  description = "Allow SSH and HTTP"
+  vpc_id      = data.aws_vpc.default.id
 
-      # Step 5: Terraform fmt (format check)
-      - name: Terraform Format
-        run: terraform fmt -check
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-      # Step 6: Terraform plan
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-      # Step 7: Terraform apply
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+  egress {
+    description = "All outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# EC2 instance
+resource "aws_instance" "web" {
+  ami                    = "ami-0fa00cdbbe31fbb37"
+  instance_type          = "t2.medium"
+  subnet_id              = data.aws_subnets.default_vpc.ids[0]
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+
+  tags = {
+    Name = "web-server"
+  }
+}
+
+# Output public IP
+output "ec2_public_ip" {
+  description = "Public IP of EC2 instance"
+  value       = aws_instance.web.public_ip
+}

@@ -1,6 +1,34 @@
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-northeast-3"
+}
+
+# Get default VPC
+data "aws_vpc" "default" {
+  default = true
+}
+
+# Get subnets in default VPC
+data "aws_subnets" "default_vpc" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
 # Security group
-resource "aws_security_group" "ec2_sg" {
-  name        = "ec2-sg"             # simple name
+resource "aws_security_group" "web_sg" {
+  name        = "web-sg"
   description = "Allow SSH and HTTP"
   vpc_id      = data.aws_vpc.default.id
 
@@ -21,7 +49,7 @@ resource "aws_security_group" "ec2_sg" {
   }
 
   egress {
-    description = "Allow all outbound"
+    description = "All outbound"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -31,17 +59,18 @@ resource "aws_security_group" "ec2_sg" {
 
 # EC2 instance
 resource "aws_instance" "web" {
-  ami           = "ami-0fa00cdbbe31fbb37" 
+  ami           = "ami-0fa00cdbbe31fbb37"
   instance_type = "t2.medium"
   subnet_id     = data.aws_subnets.default_vpc.ids[0]
 
-  vpc_security_group_ids = [aws_security_group.ec2_sg.id]  # ✅ use ID here
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
 
   tags = {
-    Name = "junnkins"
+    Name = "web-server"
   }
 }
 
+# Output public IP
 output "ec2_public_ip" {
   description = "Public IP of EC2 instance"
   value       = aws_instance.web.public_ip
